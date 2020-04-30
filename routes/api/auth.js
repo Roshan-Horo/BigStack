@@ -63,7 +63,32 @@ router.post('/login',(req,res) => {
          bcrypt.compare(password, person.password)
          .then(isCorrect => {
              if(isCorrect){
-                 res.json({Success : 'User is able to login successfully'})
+                 //res.json({Success : 'User is able to login successfully'})
+                 //use payload and create a token for user
+                 const payload = {
+                     id: person.id,
+                     name: person.name,
+                     email: person.email
+                 };
+                 jsonwt.sign(
+                     payload,
+                     key.secret,
+                     {expiresIn: 3600},
+                      (err,token) => {
+                          if(err) throw err;
+                          if(token){
+                          res.json({
+                              success: true,
+                              token: "Bearer " + token
+                          });
+                        }else{
+                            res.json({
+                                success: false,
+                                token: "Token is nothing" + token
+                            });
+                        }
+                    }
+                 )
              }else {
                  res.status(400).json({pssworderror: 'Password is not Correct'})
              }
@@ -71,6 +96,21 @@ router.post('/login',(req,res) => {
          .catch(err => console.log(err));
      })
      .catch(err => console.log(err));
+});
+
+//@type    GET
+//@route   /api/auth/profile
+//@desc    route for user profile 
+//@access  PRIVATE
+
+router.get('/profile', passport.authenticate('jwt',{session: false}), (req,res) => {
+    //console.log(req);
+    res.json({
+        id : req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+
+    })
 });
 
 module.exports = router; 
