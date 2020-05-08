@@ -81,5 +81,125 @@ router.post('/',
   }
 );
 
+//@type    GET
+//@route   /api/profile/:username 
+//@desc    route for getting user profile based on USERNAME 
+//@access  PUBLIC       
+
+router.get('/:username', (req,res) => {
+    Profile.findOne({username: req.params.username})
+    .populate("user", ["name","email"])
+    .then(profile => {
+        if(!profile){
+           res.status(404).json({usernotfound: 'User not found'});
+        }
+        res.json(profile);
+    })
+    .catch(err => console.log('problem in getting user profile based on USERNAME' + err));
+});
+
+//@type    GET
+//@route   /api/profile/ids/:id
+//@desc    route for getting user profile based on ID
+//@access  PUBLIC       
+
+router.get('/ids/:id', (req,res) => {
+    Profile.findOne({user: req.params.id})
+    .populate("user", ["name","email"])
+    .then(profile => {
+        if(!profile){
+           res.status(404).json({IDnotfound: 'ID not found'});
+        }
+        res.json(profile);
+    })
+    .catch(err => console.log('problem in getting user profile based on ID' + err));
+});
+
+//@type    GET
+//@route   /api/profile/find/everyone 
+//@desc    route for getting user profile based on USERNAME 
+//@access  PUBLIC       
+
+router.get('/find/everyone', (req,res) => {
+    Profile.find()
+    .populate("user", ["name","email"])
+    .then(profiles => {
+        if(!profiles){
+           res.status(404).json({usernotfound: 'User not found'});
+        }
+        res.json(profiles)
+    })
+    .catch(err => console.log('problem in getting user profile based on USERNAME' + err));
+});
+
+//@type    DELETE
+//@route   /api/profile/
+//@desc    route for deleting based on ID 
+//@access  PRIVATE 
+
+router.delete('/',passport.authenticate('jwt',{session: false}), (req,res) => {
+    Profile.findOne({user: req.user.id})
+    Profile.findOneAndRemove({user: req.user.id})
+    .then( () => {
+        Person.findOneAndRemove({_id: req.user.id})
+        .then(() => {
+            res.json({success: 'Delete was a success'})
+        })
+        .catch(err => console.log('problem in finding and removing Person' + err));
+    })
+    .catch(err => console.log("problem in finding and removing Profile" + err));
+});
+
+//@type    POST
+//@route   /api/profile/workrole
+//@desc    route for adding work profile of a person 
+//@access  PRIVATE 
+
+router.post('/workrole',passport.authenticate('jwt',{session: false}), (req,res) => {
+    Profile.findOne({user: req.user.id})
+     .then(profile => {
+        if(!profile) res.status(404).json({profilenotfound: 'profile not found'}); 
+        const newWork = {
+              role: req.body.role,
+              company: req.body.company,
+              country: req.body.country,
+              from: req.body.from,
+              to: req.body.to,
+              current: req.body.current,
+              details: req.body.details,
+          };
+          profile.workrole.unshift(newWork);
+          profile.save()
+          .then(profile => {
+              res.json(profile)
+          })
+          .catch(err => console.log('error in saving workrole' + err));
+
+     })
+     .catch(err => console.log('error in finding workrole of a user' + err));
+});
+
+//@type    DELETE
+//@route   /api/profile/workrole/:w_id
+//@desc    route for deleting a specific workrole
+//@access  PRIVATE 
+
+router.delete('/workrole/:w_id',passport.authenticate('jwt',{session: false}), (req,res) => {
+     Profile.findOne({user: req.user.id})
+     .then( profile => {
+         if(!profile) res.status(404).json({profilenotfound:'profile not found'});
+         const remove = profile.workrole
+         .map(item => item.id)
+         .indexOf(req.params.w_id);
+
+         profile.workrole.splice(remove,1);
+
+         profile
+         .save()
+         .then(profile => res.json(profile))
+         .catch(err => console.log(err));
+     })
+     .catch(err => console.log('error in finding ID' + err));
+});
 
 module.exports = router;
